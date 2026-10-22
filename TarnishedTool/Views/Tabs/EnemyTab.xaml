@@ -610,6 +610,27 @@
                                     Command="{Binding ReviveAllBossesAsFirstEncounterCommand}"
                                     IsEnabled="{Binding AreOptionsEnabled}"
                                     Margin="0,3, 20, 2" />
+                            <StackPanel Grid.Row="0" Grid.Column="2" Orientation="Horizontal">
+                                <CheckBox Content="Reset as First Encounter"
+                                          IsChecked="{Binding IsResetSelectedBossAsFirstEncounterEnabled}"
+                                          IsEnabled="{Binding CanResetSelectedBossAsFirstEncounter}"
+                                          Margin="0,2" />
+                                <Border Background="#3498db"
+                                        CornerRadius="10"
+                                        Width="12"
+                                        Height="12"
+                                        Margin="5,0,0,0"
+                                        VerticalAlignment="Center"
+                                        ToolTip="When you die/quit out of the selected boss, it is reset as a first encounter&#x0A;Only for bosses that have a first encounter&#x0A;Uncheck for normal rematch behaviour back"
+                                        ToolTipService.InitialShowDelay="100">
+                                    <TextBlock Text="i"
+                                               Foreground="White"
+                                               HorizontalAlignment="Center"
+                                               VerticalAlignment="Center"
+                                               FontWeight="Bold"
+                                               FontSize="10" />
+                                </Border>
+                            </StackPanel>
                             <CheckBox Grid.Row="1" Grid.Column="2"  Content="Rest on Revive"
                                       IsChecked="{Binding IsRestOnReviveEnabled}"
                                       Margin="0,2" />
