@@ -110,6 +110,8 @@ public class EnemyViewModel : BaseViewModel
 
     private bool _shouldSetNight;
 
+    private readonly HashSet<BossRevive> _bossesToResetAsFirstEncounter = new();
+
     public const int PhaseTransitionCooldownSpEffectId = 20011216;
 
     private const int EbNpcThinkParamId = 22000000;
@@ -163,6 +165,8 @@ public class EnemyViewModel : BaseViewModel
         BossRevives.PropertyChanged += (_, e) =>
         {
             if (e.PropertyName != nameof(BossRevives.SelectedItem)) return;
+            OnPropertyChanged(nameof(CanResetSelectedBossAsFirstEncounter));
+            OnPropertyChanged(nameof(IsResetSelectedBossAsFirstEncounterEnabled));
             SelectedBossStatus = AreOptionsEnabled && BossRevives.SelectedItem != null
                 ? GetBossStatus(BossRevives.SelectedItem)
                 : string.Empty;
@@ -467,6 +471,7 @@ public class EnemyViewModel : BaseViewModel
     {
         AreOptionsEnabled = true;
         IsDlcAvailable = _dlcService.IsDlcAvailable;
+        ResetBossesAsFirstEncounter();
         if (_shouldSetNight)
         {
             _shouldSetNight = false;
@@ -840,6 +845,36 @@ public class EnemyViewModel : BaseViewModel
         return dialog.ShowDialog() == true ? dialog.SelectedBoss : null;
     }
 
+    public bool CanResetSelectedBossAsFirstEncounter => HasFirstEncounterFlags(BossRevives.SelectedItem);
+
+    public bool IsResetSelectedBossAsFirstEncounterEnabled
+    {
+        get => BossRevives.SelectedItem != null && _bossesToResetAsFirstEncounter.Contains(BossRevives.SelectedItem);
+        set
+        {
+            var boss = BossRevives.SelectedItem;
+            if (boss == null || !HasFirstEncounterFlags(boss)) return;
+            if (value) _bossesToResetAsFirstEncounter.Add(boss);
+            else _bossesToResetAsFirstEncounter.Remove(boss);
+            OnPropertyChanged();
+        }
+    }
+
+    private static bool HasFirstEncounterFlags(BossRevive boss) =>
+        boss?.FirstEncounterFlags is { Count: > 0 } && boss.BossFlags is { Count: > 0 };
+
+    // Runs after a death / quitout reload: puts selected alive bosses back to their first encounter state
+    private void ResetBossesAsFirstEncounter()
+    {
+        foreach (var boss in _bossesToResetAsFirstEncounter)
+        {
+            if (boss.IsDlc && !IsDlcAvailable) continue;
+            if (_eventService.GetEvent(boss.BossFlags[0].EventId)) continue; // Dead, nothing to retry
+            foreach (var flag in boss.FirstEncounterFlags)
+                _eventService.SetEvent(flag.EventId, flag.SetValue);
+        }
+    }
+
     private bool _isRestOnReviveEnabled;
 
     public bool IsRestOnReviveEnabled
@@ -850,6 +885,8 @@ public class EnemyViewModel : BaseViewModel
 
     private void SetBossFlags(BossRevive bossRevive, bool isFirstEncounter)
     {
+        if (_bossesToResetAsFirstEncounter.Remove(bossRevive) && bossRevive == BossRevives.SelectedItem)
+            OnPropertyChanged(nameof(IsResetSelectedBossAsFirstEncounterEnabled));
         if (bossRevive.IsDlc && !IsDlcAvailable) return;
         if (!bossRevive.IsInitializeDeadSet) SetInitializeDead(bossRevive.NpcParamIds);
 
